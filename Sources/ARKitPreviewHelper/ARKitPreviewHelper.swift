@@ -96,3 +96,47 @@ public extension ARKitPreviewHelperable {
     }
 }
 
+public protocol ARKitPreviewPresenter: NSObjectProtocol {
+    var arLoadingVC: UIViewController? {get set}
+    func createARLoadingViewController() -> UIViewController
+    func handleARResult(result:Result<ARKitPreviewerDelegateHandler, ARKitHandlerPreviewPresentorError>, presentScreenWithAnimation animation: Bool)
+    func loadARModelForURL(url: URL)
+    func present(_ viewControllerToPresent: UIViewController, animated flag: Bool, completion: (() -> Void)? )
+    func handleARError(error: ARKitHandlerPreviewPresentorError)
+}
+
+public extension ARKitPreviewPresenter where Self:ARKitPreviewHelperable
+{
+    func handleARResult(result:Result<ARKitPreviewerDelegateHandler, ARKitHandlerPreviewPresentorError>, presentScreenWithAnimation animation: Bool)
+    {
+        switch result {
+        case .success(let handler):
+            let pVC = handler.getPreviewViewController()
+            self.present(pVC, animated: animation, completion: nil)
+        case .failure(let error):
+            handleARError(error: error)
+        }
+    }
+    
+    func loadARModelForURL(url: URL)
+    {
+        if arLoadingVC?.parent != nil {
+            arLoadingVC?.dismiss(animated: false, completion: nil)
+        }
+        
+        self.getARPreviewController(atURL: url) { (result:Result<ARKitPreviewerDelegateHandler, ARKitHandlerPreviewPresentorError>) in
+            if self.arLoadingVC == nil {
+                self.handleARResult(result: result, presentScreenWithAnimation: true)
+            }else {
+                self.arLoadingVC?.dismiss(animated: false, completion: {
+                    self.handleARResult(result: result, presentScreenWithAnimation: false)
+                })
+            }
+        } beginLoading: { [weak self] in
+            guard let self = self else { return }
+            let vc = self.createARLoadingViewController()
+            self.arLoadingVC = vc
+            self.present(vc, animated: true, completion: nil)
+        }
+    }
+}
