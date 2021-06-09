@@ -7,7 +7,7 @@ public enum ARKitHandlerPreviewPresentorError: Error{
     case unsupported
 }
 
-public class ARKitPreviewerDelegateHandler: QLPreviewControllerDataSource
+public class ARKitPreviewerDelegateHandler
 {
     let localResourceURL: URL
     let originalURL: URL
@@ -17,20 +17,23 @@ public class ARKitPreviewerDelegateHandler: QLPreviewControllerDataSource
         self.originalURL = orignalURL
     }
     
+    public func getPreviewViewController() ->QLPreviewController
+    {
+        let previewController = QLPreviewController()
+        previewController.dataSource = self
+        previewController.reloadData()
+        return previewController
+    }
+}
+
+extension ARKitPreviewerDelegateHandler: QLPreviewControllerDataSource
+{
     public func numberOfPreviewItems(in controller: QLPreviewController) -> Int {
          1
     }
     
     public func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
         return localResourceURL as QLPreviewItem
-    }
-    
-    func getPreviewViewController() ->QLPreviewController
-    {
-        let previewController = QLPreviewController()
-        previewController.dataSource = self
-        previewController.reloadData()
-        return previewController
     }
 }
 
