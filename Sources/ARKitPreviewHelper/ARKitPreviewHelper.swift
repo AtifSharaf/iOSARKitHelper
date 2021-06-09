@@ -2,12 +2,12 @@ import Foundation
 import ARKit
 import Combine
 
-enum ARKitHandlerPreviewPresentorError: Error{
+public enum ARKitHandlerPreviewPresentorError: Error{
     case failedToDownload
     case unsupported
 }
 
-class ARKitPreviewerDelegateHandler: QLPreviewControllerDataSource
+public class ARKitPreviewerDelegateHandler: QLPreviewControllerDataSource
 {
     let localResourceURL: URL
     let originalURL: URL
@@ -17,11 +17,11 @@ class ARKitPreviewerDelegateHandler: QLPreviewControllerDataSource
         self.originalURL = orignalURL
     }
     
-    func numberOfPreviewItems(in controller: QLPreviewController) -> Int {
+    public func numberOfPreviewItems(in controller: QLPreviewController) -> Int {
          1
     }
     
-    func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+    public func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
         return localResourceURL as QLPreviewItem
     }
     
@@ -34,11 +34,11 @@ class ARKitPreviewerDelegateHandler: QLPreviewControllerDataSource
     }
 }
 
-protocol ARKitPreviewHelperable {
+public protocol ARKitPreviewHelperable {
     func getARPreviewController(atURL url: URL, completion: @escaping (Result<ARKitPreviewerDelegateHandler, ARKitHandlerPreviewPresentorError>) -> Void, beginLoading:(()-> Void)?)
 }
 
-extension ARKitPreviewHelperable {
+public extension ARKitPreviewHelperable {
     func getARPreviewController(atURL url: URL, completion: @escaping (Result<ARKitPreviewerDelegateHandler, ARKitHandlerPreviewPresentorError>) -> Void, beginLoading:(()-> Void)?) {
         if url.scheme?.lowercased() == "http" || url.scheme?.lowercased() == "https" {
             guard let docURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first  else {
