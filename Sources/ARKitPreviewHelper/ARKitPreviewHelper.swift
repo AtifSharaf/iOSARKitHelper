@@ -48,7 +48,7 @@ public extension ARKitPreviewHelperable {
                 print("fail to load arkit model")
                 return
             }
-            let cache_key = "arkit!" + docURL.absoluteString
+            let cache_key = "arkit!" + url.absoluteString
             if let cached_url = UserDefaults.standard.url(forKey: cache_key), FileManager.default.fileExists(atPath: cached_url.path) {
                 if QLPreviewController.canPreview(cached_url as QLPreviewItem) {
                     completion(.success(ARKitPreviewerDelegateHandler(localResourceURL: cached_url, orignalURL: url)))
