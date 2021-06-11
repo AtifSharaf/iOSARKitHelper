@@ -7,9 +7,12 @@ public enum ARKitHandlerPreviewPresentorError: Error{
     case unsupported
 }
 
+/// This object act as the delegat for QLPreviewController. And contain the url being used to display Preview content
 public class ARKitPreviewerDelegateHandler
 {
+    /// URL used to display content from device file system
     let localResourceURL: URL
+    /// Orignal URL which trigger preview presentation
     let originalURL: URL
 
     init(localResourceURL: URL, orignalURL: URL) {
@@ -17,6 +20,9 @@ public class ARKitPreviewerDelegateHandler
         self.originalURL = orignalURL
     }
     
+    
+    /// Initialize QLPreviewController and set its deletegate to self and reload UI. It ready to be presented
+    /// - Returns: QLPreviewController
     public func getPreviewViewController() ->QLPreviewController
     {
         let previewController = QLPreviewController()
@@ -37,19 +43,40 @@ extension ARKitPreviewerDelegateHandler: QLPreviewControllerDataSource
     }
 }
 
-public protocol ARKitPreviewHelperable {
-    func getARPreviewController(atURL url: URL, completion: @escaping (Result<ARKitPreviewerDelegateHandler, ARKitHandlerPreviewPresentorError>) -> Void, beginLoading:(()-> Void)?)
+public protocol ARKitResourceLoadable {
+    /// It load Preview content in device and return it location
+    /// - Parameters:
+    ///   - url: URL of orignal preview content. If url is not a location, than it will use it to download content
+    ///   - completion: Completion block with result of local file locaiton or error if any
+    ///   - beginLoading: If file need to be loaded, this block is called so you can present the UI and dismiss it in completion block
+    func getARPreviewHandler(atURL url: URL, completion: @escaping (Result<ARKitPreviewerDelegateHandler, ARKitHandlerPreviewPresentorError>) -> Void, beginLoading:(()-> Void)?)
+    
+    func getCachedLocalARPreviewURL(originalURL url: URL) -> URL?
+    func storeLocalARPreviewURL(orignalURL url: URL, localURL: URL)
 }
 
-public extension ARKitPreviewHelperable {
-    func getARPreviewController(atURL url: URL, completion: @escaping (Result<ARKitPreviewerDelegateHandler, ARKitHandlerPreviewPresentorError>) -> Void, beginLoading:(()-> Void)?) {
+public extension ARKitResourceLoadable {
+    
+    func getCachedLocalARPreviewURL(originalURL url: URL) -> URL? {
+        let cache_key = "arkit!" + url.absoluteString
+        if let cached_url = UserDefaults.standard.url(forKey: cache_key), FileManager.default.fileExists(atPath: cached_url.path) {
+            return cached_url
+        }
+        return nil
+    }
+    func storeLocalARPreviewURL(orignalURL url: URL, localURL: URL) {
+        let cache_key = "arkit!" + url.absoluteString
+        UserDefaults.standard.set(url, forKey: cache_key)
+        UserDefaults.standard.synchronize()
+    }
+    
+    func getARPreviewHandler(atURL url: URL, completion: @escaping (Result<ARKitPreviewerDelegateHandler, ARKitHandlerPreviewPresentorError>) -> Void, beginLoading:(()-> Void)?) {
         if url.scheme?.lowercased() == "http" || url.scheme?.lowercased() == "https" {
             guard let docURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first  else {
                 print("fail to load arkit model")
                 return
             }
-            let cache_key = "arkit!" + url.absoluteString
-            if let cached_url = UserDefaults.standard.url(forKey: cache_key), FileManager.default.fileExists(atPath: cached_url.path) {
+            if let cached_url = self.getCachedLocalARPreviewURL(originalURL: url) {
                 if QLPreviewController.canPreview(cached_url as QLPreviewItem) {
                     completion(.success(ARKitPreviewerDelegateHandler(localResourceURL: cached_url, orignalURL: url)))
                 }else {
@@ -73,8 +100,7 @@ public extension ARKitPreviewHelperable {
                     }
                     try FileManager.default.moveItem(at: fileURL, to: newURL)
                     print("local url: " + newURL.absoluteString )
-                    UserDefaults.standard.set(newURL, forKey: cache_key)
-                    UserDefaults.standard.synchronize()
+                    self.storeLocalARPreviewURL(orignalURL: url, localURL: newURL)
                     
                     OperationQueue.main.addOperation {
                         if QLPreviewController.canPreview(newURL as QLPreviewItem) {
@@ -96,16 +122,20 @@ public extension ARKitPreviewHelperable {
     }
 }
 
+/// This protocol is used to provide default  preview presentation implementation with some customization
 public protocol ARKitPreviewPresenter: NSObjectProtocol {
+    /// Propterty to Preview loading Viewcontroller which is presented on  - ARKitResourceLoadable.getARPreviewHandle  begin closure
     var arLoadingVC: UIViewController? {get set}
+    /// Its a custom point to provide Loading view controller
     func createARLoadingViewController() -> UIViewController
+    /// Handle result by presenting preview content controller or handle error
     func handleARResult(result:Result<ARKitPreviewerDelegateHandler, ARKitHandlerPreviewPresentorError>, presentScreenWithAnimation animation: Bool)
-    func loadARModelForURL(url: URL)
+    func presentARResourceForURL(url: URL)
     func present(_ viewControllerToPresent: UIViewController, animated flag: Bool, completion: (() -> Void)? )
     func handleARError(error: ARKitHandlerPreviewPresentorError)
 }
 
-public extension ARKitPreviewPresenter where Self:ARKitPreviewHelperable
+public extension ARKitPreviewPresenter where Self:ARKitResourceLoadable
 {
     func handleARResult(result:Result<ARKitPreviewerDelegateHandler, ARKitHandlerPreviewPresentorError>, presentScreenWithAnimation animation: Bool)
     {
@@ -118,13 +148,13 @@ public extension ARKitPreviewPresenter where Self:ARKitPreviewHelperable
         }
     }
     
-    func loadARModelForURL(url: URL)
+    func presentARResourceForURL(url: URL)
     {
         if arLoadingVC?.parent != nil {
             arLoadingVC?.dismiss(animated: false, completion: nil)
         }
         
-        self.getARPreviewController(atURL: url) { (result:Result<ARKitPreviewerDelegateHandler, ARKitHandlerPreviewPresentorError>) in
+        self.getARPreviewHandler(atURL: url) { (result:Result<ARKitPreviewerDelegateHandler, ARKitHandlerPreviewPresentorError>) in
             if self.arLoadingVC == nil {
                 self.handleARResult(result: result, presentScreenWithAnimation: true)
             }else {
