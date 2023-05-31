@@ -129,7 +129,7 @@ public protocol ARKitPreviewPresenter: NSObjectProtocol {
     /// Its a custom point to provide Loading view controller
     func createARLoadingViewController() -> UIViewController
     /// Handle result by presenting preview content controller or handle error
-    func handleARResult(result:Result<ARKitPreviewerDelegateHandler, ARKitHandlerPreviewPresentorError>, presentScreenWithAnimation animation: Bool)
+    func handleARResult(url:URL, result:Result<ARKitPreviewerDelegateHandler, ARKitHandlerPreviewPresentorError>, presentScreenWithAnimation animation: Bool)
     func presentARResourceForURL(url: URL)
     func present(_ viewControllerToPresent: UIViewController, animated flag: Bool, completion: (() -> Void)? )
     func handleARError(error: ARKitHandlerPreviewPresentorError)
@@ -137,7 +137,7 @@ public protocol ARKitPreviewPresenter: NSObjectProtocol {
 
 public extension ARKitPreviewPresenter where Self:ARKitResourceLoadable
 {
-    func handleARResult(result:Result<ARKitPreviewerDelegateHandler, ARKitHandlerPreviewPresentorError>, presentScreenWithAnimation animation: Bool)
+    func handleARResult(url:URL,result:Result<ARKitPreviewerDelegateHandler, ARKitHandlerPreviewPresentorError>, presentScreenWithAnimation animation: Bool)
     {
         switch result {
         case .success(let handler):
@@ -156,10 +156,10 @@ public extension ARKitPreviewPresenter where Self:ARKitResourceLoadable
         
         self.getARPreviewHandler(atURL: url) { (result:Result<ARKitPreviewerDelegateHandler, ARKitHandlerPreviewPresentorError>) in
             if self.arLoadingVC == nil {
-                self.handleARResult(result: result, presentScreenWithAnimation: true)
+                self.handleARResult(url:url,result: result, presentScreenWithAnimation: true)
             }else {
                 self.arLoadingVC?.dismiss(animated: false, completion: {
-                    self.handleARResult(result: result, presentScreenWithAnimation: false)
+                    self.handleARResult(url:url, result: result, presentScreenWithAnimation: false)
                 })
             }
         } beginLoading: { [weak self] in
