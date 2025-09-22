@@ -1,6 +1,7 @@
 import Foundation
 import ARKit
 import Combine
+import QuickLook
 
 public enum ARKitHandlerPreviewPresentorError: Error{
     case failedToDownload
